@@ -11,7 +11,11 @@ $foldersToBackupPaths = @(
 	"D:\Coop"
 	"D:\books"
 	"D:\cmpt 213"
-	"D:\cmpt 275"
+)
+
+# Exclude the following files from being backed up
+$exclusions = @(
+	"D:\cmpt 275\CMPT275 SVN"
 )
 
 function Get-DropBox {
@@ -44,12 +48,12 @@ function Get-DropboxFolder($dropboxLocation, $fullFilePath) {
 
 function Create-MissingDropboxFolders($foldersToBackupPaths, $dropboxLocation) {
 	Get-ChildItem $foldersToBackupPaths -Recurse -File | %{
-		$dropboxFolder = Get-DropboxFolder $dropboxLocation $_.FullName
-		if (-not (Test-Path $dropboxFolder)) {
-			Write-Host "Creating $dropboxFolder because it does not exist`r`n"
-			New-Item $dropboxFolder -Type Directory | Out-Null
+			$dropboxFolder = Get-DropboxFolder $dropboxLocation $_.FullName
+			if (-not (Test-Path $dropboxFolder)) {
+				Write-Host "Creating $dropboxFolder because it does not exist`r`n"
+				New-Item $dropboxFolder -Type Directory | Out-Null
+			}
 		}
-	}
 }
 
 function Backup($foldersToBackupPaths, $dropboxLocation) {
@@ -58,7 +62,7 @@ function Backup($foldersToBackupPaths, $dropboxLocation) {
 	Write-Host $foldersToBackupPaths
 	$originalFiles = @(Get-ChildItem $foldersToBackupPaths -Recurse -File)
 	$dropboxFiles = @(Get-ChildItem $dropboxLocation -Recurse -File)
-	$diff = Compare-Object -ReferenceObject $originalFiles -DifferenceObject $dropboxFiles -PassThru |
+	$diff = Compare-Object -ReferenceObject $originalFiles -DifferenceObject $dropboxFiles -property Name, LastWriteTime -PassThru |
 		Where-Object { $_.SideIndicator -eq "<=" }
 	$diff | %{ Copy-Item $_.FullName -Destination (Get-DropboxFolder $dropboxLocation $_.FullName) -Force }
 	$diff | Format-List -Property FullName, LastWriteTime
