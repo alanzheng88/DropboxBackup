@@ -6,17 +6,16 @@
 
 $ErrorActionPreference = 'Stop'
 
-# Backup specific folders
-$foldersToBackupPaths = @(
-	"D:\Coop"
-	"D:\books"
-	"D:\cmpt 213"
-)
-
-# Exclude the following files from being backed up
-$exclusions = @(
-	"D:\cmpt 275\CMPT275 SVN"
-)
+# environment variables set for user on localhost
+$foldersToBackupPaths = (Get-Content $($env:backupListTxt)) -Split '`r`n'
+$backupCredsContent = Get-Content $($env:backupCredsTxt)
+$creds = $backupCredsContent.Split(';')
+$username = $creds[0]
+$password = $creds[1]
+$emailFrom = $creds[0]
+$emailTo = $creds[2].Split(',')
+$stmpServer = $creds[3]
+$smtpPort = $creds[4]
 
 function Get-DropBox {
 	$hostFile = Join-Path (Split-Path (Get-ItemProperty HKCU:\Software\Dropbox).InstallPath) "host.db"
@@ -48,12 +47,12 @@ function Get-DropboxFolder($dropboxLocation, $fullFilePath) {
 
 function Create-MissingDropboxFolders($foldersToBackupPaths, $dropboxLocation) {
 	Get-ChildItem $foldersToBackupPaths -Recurse -File | %{
-			$dropboxFolder = Get-DropboxFolder $dropboxLocation $_.FullName
-			if (-not (Test-Path $dropboxFolder)) {
-				Write-Host "Creating $dropboxFolder because it does not exist`r`n"
-				New-Item $dropboxFolder -Type Directory | Out-Null
-			}
+		$dropboxFolder = Get-DropboxFolder $dropboxLocation $_.FullName
+		if (-not (Test-Path $dropboxFolder)) {
+			Write-Host "Creating $dropboxFolder because it does not exist`r`n"
+			New-Item $dropboxFolder -Type Directory | Out-Null
 		}
+	}
 }
 
 function Backup($foldersToBackupPaths, $dropboxLocation) {
@@ -70,12 +69,23 @@ function Backup($foldersToBackupPaths, $dropboxLocation) {
 	Write-Host "`r`nFinished backing up -- Time: $endTime`r`n"
 }
 
+function Send-Log($from, $to, $attachment, $body, $smtpServer, $smtpPort, $username, $password) {
+	$subject = "Dropbox Backup Automation Log"
+	$securePassword = ConvertTo-SecureString $password -AsPlainText -Force
+	$credentials = New-Object System.Management.Automation.PSCredential($username, $securePassword)
+	Write-Host "Sending logs to the following: $to"
+	Send-MailMessage -From $from -To $to -Subject $subject -Body $body -SmtpServer $smtpServer -port $smtpPort -UseSsl -Credential $credentials
+	Write-Host "Sending logs complete"
+}
+
 # Main
 $stdoutLog = "C:\Users\Alan\Desktop\backuplog.txt"
-Start-Transcript -Path $stdoutLog
+Start-Transcript -Path $stdoutLog | Out-Null
 $dropboxLocation = Get-DropBox
 Check-AllFoldersExist $foldersToBackupPaths
 Create-MissingDropboxFolders $foldersToBackupPaths $dropboxLocation
 Backup $foldersToBackupPaths $dropboxLocation
-Stop-Transcript
+Stop-Transcript | Out-Null
+$log = Get-Content $stdoutLog | Out-String
+Send-Log $emailFrom $emailTo $stdoutLog $log $stmpServer $smtpPort $username $password
 Read-Host -Prompt "Press enter to exit"
