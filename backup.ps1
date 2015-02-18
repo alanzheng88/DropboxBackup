@@ -1,4 +1,4 @@
-# Prerequisites for backing up with zip files:
+# Prerequisites for backing up with zip files: (will be used sometime in the future)
 # 	Ensure chocolatey is installed by running the following:
 # 	iex ((new-object net.webclient).DownloadString('https://chocolatey.org/install.ps1'))
 # 	Install Write-Zip by running the following in powershell:
@@ -63,6 +63,11 @@ function Backup($foldersToBackupPaths, $dropboxLocation) {
 	$dropboxFiles = @(Get-ChildItem $dropboxLocation -Recurse -File)
 	$diff = Compare-Object -ReferenceObject $originalFiles -DifferenceObject $dropboxFiles -property Name, LastWriteTime -PassThru |
 		Where-Object { $_.SideIndicator -eq "<=" }
+	if ([string]::IsNullOrEmpty($diff)) {
+		$endTime = Get-Date -Format g
+		Write-Host "`r`nNothing to backup -- Time: $endTime`r`n"
+		Exit 0
+	}
 	$diff | %{ Copy-Item $_.FullName -Destination (Get-DropboxFolder $dropboxLocation $_.FullName) -Force }
 	$diff | Format-List -Property FullName, LastWriteTime
 	$endTime = Get-Date -Format g
@@ -88,4 +93,4 @@ Backup $foldersToBackupPaths $dropboxLocation
 Stop-Transcript | Out-Null
 $log = Get-Content $stdoutLog | Out-String
 Send-Log $emailFrom $emailTo $stdoutLog $log $stmpServer $smtpPort $username $password
-Read-Host -Prompt "Press enter to exit"
+# Read-Host -Prompt "Press enter to exit"
