@@ -56,18 +56,20 @@ function Create-MissingDropboxFolders($foldersToBackupPaths, $dropboxLocation) {
 }
 
 function Backup($foldersToBackupPaths, $dropboxLocation) {
-	$startTime = Get-Date -Format g
-	Write-Host "`r`nBacking up the following folders -- Time: $startTime`r`n"
+	Write-Host "`r`n-------------------------------------------------------`r`n"
+	Write-Host "Folders which are currently specified to be backed up:`r`n"
 	Write-Host $foldersToBackupPaths
+	Write-Host "`r`n-------------------------------------------------------`r`n"
 	$originalFiles = @(Get-ChildItem $foldersToBackupPaths -Recurse -File)
 	$dropboxFiles = @(Get-ChildItem $dropboxLocation -Recurse -File)
 	$diff = Compare-Object -ReferenceObject $originalFiles -DifferenceObject $dropboxFiles -property Name, LastWriteTime -PassThru |
 		Where-Object { $_.SideIndicator -eq "<=" }
 	if ([string]::IsNullOrEmpty($diff)) {
-		$endTime = Get-Date -Format g
-		Write-Host "`r`nNothing to backup -- Time: $endTime`r`n"
+		Write-Host "`r`nNothing to backup`r`n"
 		Exit 0
 	}
+	$startTime = Get-Date -Format g
+	Write-Host "`r`nBacking up the following folders -- Time: $startTime`r`n"
 	$diff | %{ Copy-Item $_.FullName -Destination (Get-DropboxFolder $dropboxLocation $_.FullName) -Force }
 	$diff | Format-List -Property FullName, LastWriteTime
 	$endTime = Get-Date -Format g
