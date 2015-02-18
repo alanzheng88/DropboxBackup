@@ -76,13 +76,19 @@ function Backup($foldersToBackupPaths, $dropboxLocation) {
 	Write-Host "`r`nFinished backing up -- Time: $endTime`r`n"
 }
 
-function Send-Log($from, $to, $attachment, $body, $smtpServer, $smtpPort, $username, $password) {
+function Send-Logs($from, $to, $attachment, $body, $smtpServer, $smtpPort, $username, $password) {
 	$subject = "Dropbox Backup Automation Log"
 	$securePassword = ConvertTo-SecureString $password -AsPlainText -Force
 	$credentials = New-Object System.Management.Automation.PSCredential($username, $securePassword)
 	Write-Host "Sending logs to the following: $to"
 	Send-MailMessage -From $from -To $to -Subject $subject -Body $body -SmtpServer $smtpServer -port $smtpPort -UseSsl -Credential $credentials
 	Write-Host "Sending logs complete"
+}
+
+function Remove-Logs($logPath) {
+	if (Test-Path $logPath) {
+		Remove-Item $logPath -Force
+	}
 }
 
 # Main
@@ -94,5 +100,6 @@ Create-MissingDropboxFolders $foldersToBackupPaths $dropboxLocation
 Backup $foldersToBackupPaths $dropboxLocation
 Stop-Transcript | Out-Null
 $log = Get-Content $stdoutLog | Out-String
-Send-Log $emailFrom $emailTo $stdoutLog $log $stmpServer $smtpPort $username $password
+Send-Logs $emailFrom $emailTo $stdoutLog $log $stmpServer $smtpPort $username $password
+Remove-Logs $stdoutLog
 # Read-Host -Prompt "Press enter to exit"
