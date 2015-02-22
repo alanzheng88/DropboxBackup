@@ -60,6 +60,7 @@ function Backup($foldersToBackupPaths, $dropboxLocation) {
 	Write-Host "Folders which are currently specified to be backed up:`r`n"
 	Write-Host $foldersToBackupPaths
 	Write-Host "`r`n-------------------------------------------------------`r`n"
+	Create-MissingDropboxFolders $foldersToBackupPaths $dropboxLocation
 	$originalFiles = @(Get-ChildItem $foldersToBackupPaths -Recurse -File)
 	$dropboxFiles = @(Get-ChildItem $dropboxLocation -Recurse -File)
 	$diff = Compare-Object -ReferenceObject $originalFiles -DifferenceObject $dropboxFiles -property Name, LastWriteTime -PassThru |
@@ -97,7 +98,6 @@ $stdoutLog = "C:\Users\Alan\Desktop\backuplog.txt"
 Start-Transcript -Path $stdoutLog | Out-Null
 $dropboxLocation = Get-DropBox
 Check-AllFoldersExist $foldersToBackupPaths
-Create-MissingDropboxFolders $foldersToBackupPaths $dropboxLocation
 Backup $foldersToBackupPaths $dropboxLocation
 Stop-Transcript | Out-Null
 $log = Get-Content $stdoutLog | Out-String
