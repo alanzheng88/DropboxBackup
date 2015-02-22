@@ -78,10 +78,11 @@ function Backup($foldersToBackupPaths, $dropboxLocation) {
 
 function Send-Logs($from, $to, $attachment, $body, $smtpServer, $smtpPort, $username, $password) {
 	$subject = "Dropbox Backup Automation Log"
+	$to = $to.Trim(' ')
 	$securePassword = ConvertTo-SecureString $password -AsPlainText -Force
 	$credentials = New-Object System.Management.Automation.PSCredential($username, $securePassword)
 	Write-Host "Sending logs to the following: $to"
-	Send-MailMessage -From $from -To $to -Subject $subject -Body $body -SmtpServer $smtpServer -port $smtpPort -UseSsl -Credential $credentials
+	Send-MailMessage -From $from -To $to -Subject $subject -Body $body -SmtpServer $smtpServer -Attachments $attachment -port $smtpPort -UseSsl -Credential $credentials
 	Write-Host "Sending logs complete"
 }
 
