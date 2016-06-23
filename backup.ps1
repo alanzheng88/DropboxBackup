@@ -1,9 +1,3 @@
-# Prerequisites for backing up with zip files: (will be used sometime in the future)
-# 	Ensure chocolatey is installed by running the following:
-# 	iex ((new-object net.webclient).DownloadString('https://chocolatey.org/install.ps1'))
-# 	Install Write-Zip by running the following in powershell:
-# 	cinst pscx
-
 $ErrorActionPreference = 'Stop'
 
 # environment variables set for user on localhost
@@ -18,9 +12,13 @@ $stmpServer = $creds[3]
 $smtpPort = $creds[4]
 
 function Get-DropBox {
-	$hostFile = Join-Path (Split-Path (Get-ItemProperty HKCU:\Software\Dropbox).InstallPath) "host.db"
-	$encodedPath = [System.Convert]::FromBase64String((Get-Content $hostFile)[1])
-	return [System.Text.Encoding]::UTF8.GetString($encodedPath)
+	# DEPRECATED: no longer works in later version of dropbox
+	# $hostFile = Join-Path (Split-Path (Get-ItemProperty HKCU:\Software\Dropbox).InstallPath) "host.db"
+	# $encodedPath = [System.Convert]::FromBase64String((Get-Content $hostFile)[1])
+	# return [System.Text.Encoding]::UTF8.GetString($encodedPath)
+	$infoFileContent = Get-Content "C:\Users\Alan\AppData\Local\Dropbox\info.json"
+	$json = ConvertFrom-Json $infoFileContent
+	return $json.personal.path
 }
 
 function Check-AllFoldersExist ($foldersToBackupPaths) {
@@ -67,6 +65,7 @@ function Backup($foldersToBackupPaths, $dropboxLocation) {
 		Where-Object { $_.SideIndicator -eq "<=" }
 	if ([string]::IsNullOrEmpty($diff)) {
 		Write-Host "`r`nNothing to backup`r`n"
+		Stop-Transcript | Out-Null
 		Exit 0
 	}
 	$startTime = Get-Date -Format g
